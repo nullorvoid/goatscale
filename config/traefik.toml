@@ -1,0 +1,43 @@
+# Add http entry point so client can send http requests to traefik
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+
+# Enable web configuration backend
+[web]
+
+# Web administration port
+#
+# Required
+#
+address = ":8080"
+
+# Enable Consul Catalog configuration backend
+[consulCatalog]
+
+# Consul server endpoint
+#
+# Required
+#
+endpoint = "consul:8500"
+
+# Default domain used.
+#
+# Optional
+#
+domain = "localhost"
+
+# Expose Consul catalog services by default
+#
+# Optional
+#
+exposedByDefault = true
+
+# Enable Docker containers to be seen. This uses the docker.sock file mounted in the docker-compose.yml
+[docker]
+
+# Expose Docker services by default
+#
+# Optional
+#
+exposedbydefault = false

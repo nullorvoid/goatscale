@@ -1,51 +1,53 @@
-# goatscale
-<img align="left" src="/logo/goatscale.png">
+# base
+This is the starting point for most people and will introduce the base of the infrastructure that will allow us to start creating our backend services.
 
-goatscale is a repository to introduce infrastructure to developers who wish to learn the basics of designing a scalable game backend. The code language of choice is golang and you will need to know at least how to read this for later examples.
+## Requirements
+* Docker installed and running
 
-Each branch in this repository tries to explain a small portion of what you will need to know, building on these in digestible steps.
+## Running
+To start the project from root
 
-It is assumed that you are familiar with Docker and Docker Compose which are required to run each of the branches. In the future this will be expanded on when required for the more complex examples that are closer to a production situation. However to get started you should be able to follow the code with basic knowledge.
+1. `docker-compose build`
+2. `docker-compose up`
 
-The requirements are described in the readme for each branch and how to get it up and running. However for the start you will need Docker installed, if you do not have this or are not sure what it is, you can find more information on the [docker site](https://www.docker.com/).
+Two URLs will now be accessible to you.
 
-# Branches
+* `traefik.localhost`
+* `consul.localhost`
 
-## Phase 1
-Phase 1 introduces the web server and basic infrastructure requirements to make this service scale. It finishes with a small chat application where a user can send a message from one client and receive it on all other connected clients.
+## What's going on?
+In this branch there are two applications running, Traefik and Consul. Both of these are being run in separate containers managed by Docker, which are defined in a Docker Compose file. Docker compose is used to manage multiple containers at the same time as well as other parts of docker, for instance network connections.
 
-### 0_base
-The base branch is the starting point for the simple examples. If you are looking for a place to start this is the place.
+Covering Docker and Compose is out of scope for this tutorial however if you want to read about it see the links below
 
-### 1_simple_webserver
-This adds a simple Iris web server to the docker infrastructure and demonstrates the problems that are encountered when running local development without using the server configuration in the base branch.
+* [Docker](https://www.docker.com/)
+* [Docker Compose](https://docs.docker.com/compose/)
 
-### 2_scalable_webserver
-This branch fixes the issues that are encountered in '1_simple_webserver' by using Traefik and Consul.
+Running in Docker is Traefik which has two distinct jobs, and Consul which for the moment is used for one distinct job.
 
-### 3_client_webserver
-This adds a simple client app which is built by Webpack and served by Iris as a single page application.
+### Traefik
+Traefik is acting as the [Reverse Proxy](https://en.wikipedia.org/wiki/Reverse_proxy) & [Load Balancer](https://en.wikipedia.org/wiki/Load_balancing_(computing)).
 
-### 4_sessions_webserver
-This branch adds Redis as a session store using Iris' built in session management.
+#### Reverse Proxy
+In simple terms a reverse proxy allows the separation of internal infrastructure topology and how the services are accessed. There are two key pieces of configuration that make this work in the local environment.
 
-### 5_messages_webserver
-This branch adds another Redis instance as a pub/sub channel allowing messages to be sent between the web servers running in the infrastructure.
+The first is to tell docker to expose port 80 on the Traefik container and bind it to localhost port 80. This allows requests to be sent to Traefik. This can be found in the `docker-compose.yml` line 10.
 
-### 6_websockets_webserver
-Currently WIP.
+The second part is to add an endpoint in Traefik on the same port, so that Traefik knows what port incoming requests will be made on. This can be found in `config/traefik.toml` line 2.
 
-## WIP: Phase 2
-Phase 2 adds the game server and sets up the web server to route clients into new game instances.
+Now that localhost:80 is directing to our traefik container in docker, and traefik listening on this port, requests will be able to be processed. The next step is to configure Traefik to send these requests to the correct places.
 
-## WIP: Phase 3
-Phase 3 adds logging, metrics, and KPI to visualise game data.
+Docker-compose allows us to set up configuration labels, these labels can be read by services to set the service configuration. In this case we are using the labels to tell Traefik about the services that were started. Both Traefik and Consul have accessible UIs, these services are being routed to using the labels defined in `docker-compose.yml` on lines 17 and 29.
 
-# WIP
-* Aside from features this repo needs TESTS, and integration with Travis.ci and coveralls.
+The UI for Traefik is defined in `config/traefik.toml` line 7, and the UI for Consul automatically exposed when the service starts.
 
-# Special thanks!
-Shout out to [@evertras](https://github.com/Evertras) [@cainmartin](https://github.com/cainmartin) and [@jrouault](https://github.com/jrouault) for taking the time to review and give great feedback.
+#### Load Balancer
+The load balancer feature of Traefik is out of the box routing that automatically sends requests in a round robin fashion between instances of the same service. This will be explored later in the tutorials.
 
-# Credits
-Created my free logo at [LogoMakr](https://LogoMakr.com)
+### Consul
+Consul is used for [Service Discovery](https://en.wikipedia.org/wiki/Service_discovery) this will be explored later in the tutorials, at this stage it is possible to access the Consul catalogue of services and see them.
+
+Traefik is automatically connecting to this catalogue based on configuration found in `config/traefik.toml` line 16 and registering the services found there.
+
+## Conclusion
+This branch introduced how a user can access the infrastructure and be redirected to services transparently. It has also set up two other key services with configuration based in `docker-compose.yml` and `config/traefik.toml`.

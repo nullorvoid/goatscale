@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  # Traefik for load balancer and reverse proxy
+  traefik:
+    build:
+      context: ./
+      # Using a dockerfile to not mount the config directly.
+      dockerfile: traefik.Dockerfile
+    ports:
+      # Expose the traefik load balancer to localhost so it can route port 80
+      - 80:80
+    volumes:
+      # Mounting docker.sock into the container to allow discovery of other docker services.
+      # This is how traefik finds docker containers running when defining '[docker]' in the traefik.toml
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      # Enable access to traefik route
+      # This allows us to browse the list of services we have in docker and consul
+      traefik.enable: true
+      traefik.frontend.rule: "Host: traefik.localhost"
+      traefik.backend: traefik
+      traefik.port: 8080
+
+  # Consul for service discovery
+  consul:
+    image: consul:latest
+    command: consul agent -server -dev -client=0.0.0.0 -ui -log-level warn
+    labels:
+      # Enable access to consul route
+      # This allows us to check what services are registered in consul and what nodes they are running on
+      traefik.enable: true
+      traefik.frontend.rule: "Host: consul.localhost"
+      traefik.backend: consul
+      traefik.port: 8500
