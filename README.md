@@ -43,6 +43,7 @@ Phase 3 adds logging, metrics, and KPI to visualise game data.
 
 # WIP
 * Aside from features this repo needs TESTS, and integration with Travis.ci and coveralls.
+* This repo is designed as a tutorial, if anyone would like to contribute please drop me a message first before creating any PRs.
 
 # Special thanks!
 Shout out to [@evertras](https://github.com/Evertras) [@cainmartin](https://github.com/cainmartin) and [@jrouault](https://github.com/jrouault) for taking the time to review and give great feedback.
