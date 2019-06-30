@@ -5,11 +5,15 @@ import (
 	"errors"
 	"flag"
 	"net"
+	"time"
 
 	// Iris webserver
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/middleware/logger"
 	"github.com/kataras/iris/middleware/recover"
+	"github.com/kataras/iris/sessions"
+	"github.com/kataras/iris/sessions/sessiondb/redis"
+	"github.com/kataras/iris/sessions/sessiondb/redis/service"
 
 	// Custom packages
 	"github.com/nullorvoid/goatscale/lib/consulapi"
@@ -26,6 +30,23 @@ type User struct {
 func main() {
 	// If we want to set an address from the command line we parse it here
 	flag.Parse()
+
+	db := redis.New(service.Config{
+		Network:     "tcp",
+		Addr:        "sessions:6379",
+		IdleTimeout: time.Duration(5) * time.Minute,
+	})
+
+	// Close the database connection if the application closed
+	defer db.Close()
+
+	sess := sessions.New(sessions.Config{
+		Cookie:       "sessionscookieid",
+		Expires:      45 * time.Minute,
+		AllowReclaim: true,
+	})
+
+	sess.UseDatabase(db)
 
 	// Create a new Iris web server
 	app := iris.New()
@@ -58,6 +79,9 @@ func main() {
 	app.Post("/login", func(ctx iris.Context) {
 		var user User
 		ctx.ReadJSON(&user)
+
+		s := sess.Start(ctx)
+		s.Set("userData", user)
 
 		app.Logger().Info("Login Called with user id: ", user.ID)
 

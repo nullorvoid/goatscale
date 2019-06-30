@@ -36,6 +36,25 @@ services:
       traefik.backend: consul
       traefik.port: 8500
 
+  # Redis session store
+  sessions:
+    image: redis:alpine
+    restart: always
+
+  # Redis commander to see contents of store
+  sessions-viewer:
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+      - REDIS_HOSTS=sessions:sessions:6379
+    depends_on:
+      - sessions
+    labels:
+      traefik.enable: true
+      traefik.frontend.rule: "Host: sessions.localhost"
+      traefik.backend: sessions-viewer
+      traefik.port: 8081
+
   # Golang webserver
   webserver:
     build:
@@ -44,3 +63,4 @@ services:
     depends_on:
       - consul
       - traefik
+      - sessions
