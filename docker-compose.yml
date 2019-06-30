@@ -55,6 +55,25 @@ services:
       traefik.backend: sessions-viewer
       traefik.port: 8081
 
+  # Redis pub sub
+  pubsub:
+    image: redis:alpine
+    restart: always
+
+  # Redis commander to see contents of pub sub
+  pubsub-viewer:
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+      - REDIS_HOSTS=pubsub:pubsub:6379
+    depends_on:
+      - pubsub
+    labels:
+      traefik.enable: true
+      traefik.frontend.rule: "Host: pubsub.localhost"
+      traefik.backend: pubsub-viewer
+      traefik.port: 8081
+
   # Golang webserver
   webserver:
     build:

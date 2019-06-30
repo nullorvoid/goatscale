@@ -16,7 +16,9 @@ import (
 	"github.com/kataras/iris/sessions/sessiondb/redis/service"
 
 	// Custom packages
+	"github.com/nullorvoid/goatscale/lib/chat"
 	"github.com/nullorvoid/goatscale/lib/consulapi"
+	"github.com/nullorvoid/goatscale/lib/pubsubapi"
 )
 
 // By default our webserver will be exposed on 8080 on any network interface
@@ -25,6 +27,11 @@ var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
 // User bind struct
 type User struct {
 	ID string `json:"userId"`
+}
+
+// Message bind struct
+type Message struct {
+	Message string `json:"message"`
 }
 
 func main() {
@@ -67,6 +74,33 @@ func main() {
 		app.Logger().Fatal("Error creating consul client: ", err)
 	}
 
+	// Create new pub sub client
+	pubsub, err := pubsubapi.NewPubSubClient("pubsub:6379")
+
+	if err != nil {
+		app.Logger().Fatal("Error creating pub sub client: ", err)
+	}
+
+	// Register to chat
+	chat, err := chat.NewChatClient(pubsub)
+
+	if err != nil {
+		app.Logger().Fatal("Error creating chat client: ", err)
+	}
+
+	// Background task for the reading of chat messages
+	go func() {
+		for {
+			msg, err := chat.GetNextMessage()
+			if err != nil {
+				app.Logger().Fatal("Error getting next message from chat: ", err)
+			}
+
+			// Message logged in future can be used with other modules
+			app.Logger().Info("Chat Handler: " + msg)
+		}
+	}()
+
 	// Register routes for our application
 	app.RegisterView(iris.HTML("./public", ".html"))
 
@@ -82,10 +116,32 @@ func main() {
 
 		s := sess.Start(ctx)
 		s.Set("userData", user)
+		s.Set("authenticated", true)
 
 		app.Logger().Info("Login Called with user id: ", user.ID)
 
 		ctx.StatusCode(iris.StatusOK)
+	})
+
+	// Api for message which does a broadcast over the chat channel to all servers
+	app.Post("/message", func(ctx iris.Context) {
+		// Check if user is authenticated
+		if auth, _ := sess.Start(ctx).GetBoolean("authenticated"); !auth {
+			ctx.StatusCode(iris.StatusForbidden)
+			return
+		}
+
+		var msg Message
+		ctx.ReadJSON(&msg)
+
+		// Send the message received to chat
+		err := chat.SendMessage(msg.Message)
+
+		if err != nil {
+			ctx.StatusCode(iris.StatusInternalServerError)
+		} else {
+			ctx.StatusCode(iris.StatusOK)
+		}
 	})
 
 	// Serve pages from public

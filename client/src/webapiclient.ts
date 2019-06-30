@@ -48,6 +48,15 @@ class WebApiClient {
 
 		return this.post('/login', query);
 	}
+
+	// Send a message to the server
+	public message(msg: string) : Promise<any> {
+		const query = {
+			message: msg,
+		};
+
+		return this.post('/message', query);
+	}
 }
 
 // Export this directly as we do not have any config and only need one instance

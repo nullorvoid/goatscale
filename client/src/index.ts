@@ -34,5 +34,19 @@ function createLoginBtn() {
 	return button;
 }
 
-// Add login button to the body
+// create a message button on the page so we can demonstrate sending messages via an authenticated route
+function createMessageBtn() {
+	const button = document.createElement('button');
+	button.innerText = 'Message';
+	button.addEventListener("click", (e: Event) => {
+		webApiClient.message('Hello server!')
+			.then(() => { console.log('Message sent'); })
+			.catch((error) => { console.log('Message Failed.', error); });
+	});
+
+	return button;
+}
+
+// Add buttons to the body
 document.body.appendChild(createLoginBtn());
+document.body.appendChild(createMessageBtn());
