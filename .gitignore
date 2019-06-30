@@ -13,3 +13,7 @@
 
 # Code - nothing useful to share in here yet
 .vscode
+
+# Client
+dist
+node_modules

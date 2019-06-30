@@ -21,6 +21,8 @@ services:
       traefik.frontend.rule: "Host: traefik.localhost"
       traefik.backend: traefik
       traefik.port: 8080
+    depends_on:
+      - consul
 
   # Consul for service discovery
   consul:
@@ -42,4 +44,3 @@ services:
     depends_on:
       - consul
       - traefik
-

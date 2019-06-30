@@ -18,6 +18,11 @@ import (
 // By default our webserver will be exposed on 8080 on any network interface
 var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
 
+// User bind struct
+type User struct {
+	ID string `json:"userId"`
+}
+
 func main() {
 	// If we want to set an address from the command line we parse it here
 	flag.Parse()
@@ -41,10 +46,27 @@ func main() {
 		app.Logger().Fatal("Error creating consul client: ", err)
 	}
 
-	// Set a GET route that returns some simple HTML
-	app.Handle("GET", "/", func(ctx iris.Context) {
-		ctx.HTML("<h1>Welcome</h1>")
+	// Register routes for our application
+	app.RegisterView(iris.HTML("./public", ".html"))
+
+	// Get basic single page view
+	app.Get("/", func(ctx iris.Context) {
+		ctx.View("index.html")
 	})
+
+	// Login route to check user can call functional APIs
+	app.Post("/login", func(ctx iris.Context) {
+		var user User
+		ctx.ReadJSON(&user)
+
+		app.Logger().Info("Login Called with user id: ", user.ID)
+
+		ctx.StatusCode(iris.StatusOK)
+	})
+
+	// Serve pages from public
+	assetHandler := app.StaticHandler("./public", false, false)
+	app.SPA(assetHandler)
 
 	// Run the server, this will hold open the application
 	app.Run(iris.Addr(*addr), iris.WithoutServerError(iris.ErrServerClosed))

@@ -1,5 +1,5 @@
 # Build image from golang to make sure we have everything to compile
-FROM golang:alpine AS build-env
+FROM golang:alpine AS build-golang
 WORKDIR /app
 
 # Prepare environment to pull dependencies
@@ -17,14 +17,30 @@ COPY ./cmd/webserver ./cmd/webserver
 COPY ./scripts ./scripts
 COPY ./lib ./lib
 
-# Build application
+# Build golang application
 RUN go build -o ./bin/main -ldflags "-s -w" ./cmd/webserver/
+
+# Build image from node to do the webpack compile to static
+FROM node:alpine AS build-node
+WORKDIR /app
+
+# Prepare environment to pull dependencies
+RUN apk update
+
+# Copy webpack config and build components
+COPY ./client .
+# Install npm and run webpack build to create the client
+RUN npm install
+RUN npm run build
 
 # Build runtime image
 FROM alpine:latest
 WORKDIR /app
-COPY --from=build-env /app/bin .
-COPY --from=build-env /app/scripts ./scripts
+# Copy golang server
+COPY --from=build-golang /app/bin .
+COPY --from=build-golang /app/scripts ./scripts
+# Copy client
+COPY --from=build-node /app/dist ./public
 
 # Execute the scripts to start the server
 ENTRYPOINT [ "./scripts/webserver.entrypoint.sh" ]
