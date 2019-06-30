@@ -15,6 +15,7 @@ RUN go mod download
 # Copy webserver entry, scripts for running the server
 COPY ./cmd/webserver ./cmd/webserver
 COPY ./scripts ./scripts
+COPY ./lib ./lib
 
 # Build application
 RUN go build -o ./bin/main -ldflags "-s -w" ./cmd/webserver/

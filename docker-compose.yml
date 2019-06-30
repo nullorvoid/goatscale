@@ -39,7 +39,7 @@ services:
     build:
       context: ./
       dockerfile: webserver.Dockerfile
-    ports:
-      # Expose the web service on 8080 localhost, demonstrating scale issues without proxy
-      - 8080:8080
+    depends_on:
+      - consul
+      - traefik
 

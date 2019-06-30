@@ -1,5 +1,5 @@
-# Simple Web Server
-Adds a golang web server into the docker infrastructure and exposes it on localhost:8080.
+# Scalable Web Server
+This configuration solves the scalability issue of the '1_simple_webserver' by having the web server add itself to the consul catalogue, and accessed via Traefik.
 
 ## Requirements
 * Docker installed and running
@@ -8,36 +8,30 @@ Adds a golang web server into the docker infrastructure and exposes it on localh
 To start the project from root
 
 1. `docker-compose build`
-2. `docker-compose up`
+2. `docker-compose up --scale webserver=2`
 
-One new endpoint will be accessible.
+Endpoints accessible
 
-* `localhost:8080`
+ * `consul.localhost`
+ * `traefik.localhost`
+
+New endpoints
+
+* `webserver.localhost`
 
 ## What's going on?
-This branch builds on the `base` branch and adds a Golang web server. The web server is using the [Iris framework](https://iris-go.com/) to serve HTML to the client. A simple Golang set up is used and the web server kept simple to highlight issues without a reverse proxy which will also be explored later when a game server is added.
+In this branch we have added the Consul client to a new package found in the `lib` folder. We connect to Consul when the server starts and register our presence. During this registration we also add specific `labels` for Traefik to use when reading the Consul catelgue, these labels `traefik.backend` specifies the name of the service and `traefik.enabled` to expose the web server via Traefik.
+
+Traefik will then use a load balance algorithm to direct requests via the two registered servers that were started with `--scale webserver=2`, by default this algorithm is simple round robin.
 
 ### Folder Structure
-This branch has two additional folders, `cmd` & `scripts`. `cmd` is used to hold the Golang applications entry points. The code in here should be lightweight angod anything that might be used by multiple applications should be separated into packages to be included. The `scripts` folder holds the entrypoint for the web server container, this will be dicussed below.
-
-### Golang Configuration
-The project is set up with 'Go Modules' which manages the dependencies for the web server. For more information on the package management system in Go the docs are avaliable on the [Golang website](https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more). The module system creates two files in the root of the project `go.mod` & `go.sum`.
-
-`go.mod` holds all the version numbers for each package that is included. It is human readable so that anyone can have a look at all the included packages including indirect packages.
-
-`go.sum` holds all the checksum information for packages in the project. It also holds checksums for packages that have been in the project in the past and have been removed.
-
-### Iris
-The Iris web framework will be used in the web server and throughout the examples in this repository. You can find out more information on the [Iris website](https://iris-go.com/).
-
-### Scripts
-The `scripts` folder is a choice which could be considered strange. The `webserver.entrypoint.sh` just starts the server as is, this could be done from the `webserver.Dockerfile`. The reasoning behind this choice is to be able to extend the start up in later tutorials, a common use case would be to wait for database connectivity and then push in sample data via this script for initialisation. For the moment this is not implemented but will be used in later turorials.
+The `lib` folder has been added to the project and copied into the build in the `webserver.Dockerfile`. This folder will serve as the general purpose code folder, holding modules that will be used in the applications. For the moment it just has a wrapper to the consul api.
 
 ## Issues
-There is a big problem with this set up when you want to locally test scalability. The port is shared to localhost, so you can only have one server running at a time. This means you can not run `docker-compose up --scale webserver=2`.
+There are some issues with the setup of the webserver, Consul and Traefik. The biggest issue is that no health status for the nodes has been written, this means that if servers crash or get shutdown these changes will not be seen in Traefik. For the purpose of this repo which is an introduction to the basic components of a game server architecture it is suitable, however this is far from production code, and would need a lot more checks and APIs to get to that stage.
 
 ## Conclusion
-This sets up the basic web server using Iris which can be tested by connecting to `localhost:8080`, however it also demonstrates the problem with local development with multiple web servers. In the next stage we will use the Traefik and Consul to solve this issue.
+In this branch Consul has been added and the `lib` folder to hold the code for the API. It demonstrates how requests can be routed over multiple web servers and how we can register with Consul and have Traefik read this information and route requests accordingly.
 
-## Diff from 0_base
-[Diff](https://github.com/nullorvoid/goatscale/compare/0_base...1_simple_webserver)
+## Diff from 1_simple_webserver
+[Diff](https://github.com/nullorvoid/goatscale/compare/1_simple_webserver...2_scalable_webserver)
